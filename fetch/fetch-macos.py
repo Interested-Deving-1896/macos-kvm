@@ -24,11 +24,9 @@ Usage:
 
 import argparse
 import hashlib
-import json
 import os
 import random
 import string
-import struct
 import sys
 
 try:
@@ -38,7 +36,7 @@ except ImportError:
     print("ERROR: Python 2 is not supported, please use Python 3")
     sys.exit(1)
 
-# ── Apple CDN constants ────────────────────────────────────────────────────────
+# Apple CDN constants
 
 RECENT_MAC = "Mac-27AD2F918AE68F61"
 MLB_ZERO = "00000000000000000"
@@ -133,13 +131,21 @@ def download_image(url, dest, chunk=1 << 20):
                 downloaded += len(block)
                 if total:
                     pct = downloaded * 100 // total
-                    print(f"\r  {pct:3d}%  {downloaded >> 20} / {total >> 20} MiB", end="", flush=True)
+                    mib_done = downloaded >> 20
+                    mib_total = total >> 20
+                    print(
+                        f"\r  {pct:3d}%  {mib_done} / {mib_total} MiB",
+                        end="",
+                        flush=True,
+                    )
     print()
 
 
 def main():
     parser = argparse.ArgumentParser(description="Fetch macOS recovery images")
-    parser.add_argument("--version", choices=list(VERSIONS.keys()), help="macOS version to fetch")
+    parser.add_argument(
+        "--version", choices=list(VERSIONS.keys()), help="macOS version to fetch"
+    )
     parser.add_argument("--list", action="store_true", help="List available versions")
     parser.add_argument("--outdir", default=".", help="Output directory (default: .)")
     args = parser.parse_args()
