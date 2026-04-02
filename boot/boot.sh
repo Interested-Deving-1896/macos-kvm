@@ -96,6 +96,8 @@ if [[ -f /sys/module/kvm/parameters/ignore_msrs ]]; then
 fi
 
 # ── Build QEMU args ───────────────────────────────────────────────────────────
+# SC2054: commas inside quoted strings are QEMU argument syntax, not array separators.
+# shellcheck disable=SC2054
 ARGS=(
     -enable-kvm
     -m "${RAM}"
