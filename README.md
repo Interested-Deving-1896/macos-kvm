@@ -73,24 +73,44 @@ bash boot/boot.sh --ram 8192 --cores 4 --threads 8
 bash boot/boot.sh --install fetch/BaseSystem.img
 ```
 
-## Docker
+## Incus
+
+Run macOS as an Incus VM instance (replaces Docker).
 
 ```bash
-# Build
-docker build -t macos-kvm -f docker/Dockerfile .
+# Prerequisites: Incus installed and initialised
+# https://linuxcontainers.org/incus/docs/main/installing/
 
-# Run (GUI)
-docker run --device /dev/kvm --device /dev/snd \
-  -v /tmp/.X11-unix:/tmp/.X11-unix \
-  -e DISPLAY=$DISPLAY \
-  macos-kvm
+# 1. Download firmware and fetch installer
+make firmware
+make fetch VERSION=sonoma
 
-# Run (headless, SSH on 10022)
-docker run --device /dev/kvm -p 10022:10022 -e HEADLESS=1 macos-kvm
+# 2. Create and launch the VM
+make incus-launch                        # default: sonoma, 4 GiB RAM, 4 vCPUs
 
-# docker-compose
-cd docker && docker-compose up
+# Or with custom options
+bash incus/setup.sh launch --version ventura --ram 8GiB --cpus 8
+
+# 3. Connect to the console (during macOS install)
+incus console macos-sonoma
+
+# 4. Manage the VM
+make incus-stop
+make incus-start
+make incus-status
+
+# 5. Push and run guest optimizations
+bash incus/optimize-guest.sh macos-sonoma --all
+
+# 6. Delete the VM
+bash incus/setup.sh delete --name macos-sonoma
 ```
+
+The Incus profile (`incus/profile.yaml`) configures:
+- Apple SMC OSK via `raw.qemu`
+- Custom OVMF firmware (UEFI, 1920×1080 vars)
+- `q35` machine type, Skylake-Client CPU with required feature flags
+- `security.secureboot=false` (required for macOS)
 
 ## Guest optimizations
 
@@ -119,18 +139,18 @@ sudo virsh start macos-kvm
 
 ```
 macos-kvm/
-├── fetch/              # macOS image download and conversion
-│   ├── fetch-macos.py  # Fetches recovery images from Apple CDN
+├── fetch/                    # macOS image download and conversion
+│   ├── fetch-macos.py        # Fetches recovery images from Apple CDN
 │   └── convert-image.sh
-├── boot/               # QEMU launch scripts and OpenCore config
-│   ├── boot.sh         # Unified boot script
+├── boot/                     # QEMU launch scripts and OpenCore config
+│   ├── boot.sh               # Unified boot script (bare QEMU)
 │   └── libvirt-domain.xml
-├── firmware/           # OVMF firmware (downloaded by make firmware)
-├── docker/             # Docker/compose integration
-│   ├── Dockerfile
-│   ├── docker-compose.yml
-│   └── entrypoint.sh
-├── guest-tools/        # Scripts to run inside the macOS guest
+├── firmware/                 # OVMF firmware (downloaded by make firmware)
+├── incus/                    # Incus VM integration
+│   ├── profile.yaml          # Incus profile (CPU, RAM, OVMF, SMC OSK)
+│   ├── setup.sh              # launch / start / stop / shell / delete
+│   └── optimize-guest.sh     # Push and run guest-tools inside Incus VM
+├── guest-tools/              # Scripts to run inside the macOS guest
 │   ├── optimize.sh
 │   └── useradd-bulk.sh
 └── Makefile

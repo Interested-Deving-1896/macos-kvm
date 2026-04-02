@@ -9,7 +9,7 @@ DISK_IMAGE   := $(REPO_ROOT)mac_hdd.qcow2
 DISK_SIZE    ?= 128G
 VERSION      ?= sonoma
 
-.PHONY: all firmware disk fetch boot headless docker clean help
+.PHONY: all firmware disk fetch boot headless incus-launch incus-start incus-stop incus-status clean help
 
 all: help
 
@@ -18,9 +18,12 @@ help:
 	@echo "  make firmware        Download OVMF firmware blobs"
 	@echo "  make disk            Create a blank macOS HDD image (DISK_SIZE=$(DISK_SIZE))"
 	@echo "  make fetch           Download macOS recovery image (VERSION=$(VERSION))"
-	@echo "  make boot            Start macOS VM (GUI)"
-	@echo "  make headless        Start macOS VM (VNC on :5900)"
-	@echo "  make docker          Build Docker image"
+	@echo "  make boot            Start macOS VM (GUI, bare QEMU)"
+	@echo "  make headless        Start macOS VM (VNC on :5900, bare QEMU)"
+	@echo "  make incus-launch    Create and launch macOS VM in Incus"
+	@echo "  make incus-start     Start an existing Incus VM"
+	@echo "  make incus-stop      Stop a running Incus VM"
+	@echo "  make incus-status    Show Incus VM status"
 	@echo "  make clean           Remove generated files"
 
 firmware:
@@ -51,8 +54,17 @@ boot: firmware disk
 headless: firmware disk
 	HEADLESS=1 bash boot/boot.sh
 
-docker:
-	docker build -t macos-kvm -f docker/Dockerfile .
+incus-launch:
+	bash incus/setup.sh launch
+
+incus-start:
+	bash incus/setup.sh start
+
+incus-stop:
+	bash incus/setup.sh stop
+
+incus-status:
+	bash incus/setup.sh status
 
 clean:
 	rm -f fetch/BaseSystem.img fetch/BaseSystem.dmg fetch/*.chunklist
