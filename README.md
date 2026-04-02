@@ -32,16 +32,19 @@ sudo dnf install qemu-kvm python3 wget dmg2img
 # 1. Download OVMF firmware
 make firmware
 
-# 2. Create a blank disk image (default 128G)
+# 2. Download OpenCore bootloader
+make opencore
+
+# 3. Create a blank disk image (default 128G)
 make disk
 
-# 3. Fetch macOS recovery image (default: sonoma)
+# 4. Fetch macOS recovery image and convert to .img (default: sonoma)
 make fetch VERSION=sonoma
 
-# 4. Boot into the installer
+# 5. Boot into the installer
 bash boot/boot.sh --install fetch/BaseSystem.img
 
-# 5. After installation, boot normally
+# 6. After installation, boot normally
 make boot
 ```
 
@@ -81,8 +84,9 @@ Run macOS as an Incus VM instance (replaces Docker).
 # Prerequisites: Incus installed and initialised
 # https://linuxcontainers.org/incus/docs/main/installing/
 
-# 1. Download firmware and fetch installer
+# 1. Download firmware, OpenCore, and fetch installer
 make firmware
+make opencore
 make fetch VERSION=sonoma
 
 # 2. Create and launch the VM
@@ -130,8 +134,12 @@ bash guest-tools/optimize.sh --reduce-motion
 ## libvirt / Virt-Manager
 
 ```bash
-# Edit CHANGEME paths in boot/libvirt-domain.xml first
-sudo virsh define boot/libvirt-domain.xml
+# Substitute repo paths and import in one step
+bash boot/libvirt-configure.sh
+
+# Or dry-run to review the generated XML first
+bash boot/libvirt-configure.sh --dry-run
+
 sudo virsh start macos-kvm
 ```
 

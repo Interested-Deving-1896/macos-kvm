@@ -17,10 +17,11 @@
     <feature policy="require" name="vmware-cpuid-freq"/>
   </cpu>
 
+  <!-- Run: bash boot/libvirt-configure.sh to substitute paths before importing -->
   <os>
     <type arch="x86_64" machine="q35">hvm</type>
-    <loader readonly="yes" type="pflash">CHANGEME/firmware/OVMF_CODE_4M.fd</loader>
-    <nvram>CHANGEME/firmware/OVMF_VARS-1920x1080.fd</nvram>
+    <loader readonly="yes" type="pflash">@@REPO_ROOT@@/firmware/OVMF_CODE_4M.fd</loader>
+    <nvram>@@REPO_ROOT@@/firmware/OVMF_VARS-1920x1080.fd</nvram>
   </os>
 
   <features>
@@ -40,7 +41,7 @@
     <!-- OpenCore bootloader -->
     <disk type="file" device="disk">
       <driver name="qemu" type="qcow2" cache="writeback"/>
-      <source file="CHANGEME/boot/OpenCore/OpenCore.qcow2"/>
+      <source file="@@REPO_ROOT@@/boot/OpenCore/OpenCore.qcow2"/>
       <target dev="sda" bus="sata"/>
       <boot order="1"/>
     </disk>
@@ -48,7 +49,7 @@
     <!-- macOS HDD -->
     <disk type="file" device="disk">
       <driver name="qemu" type="qcow2" cache="writeback"/>
-      <source file="CHANGEME/mac_hdd.qcow2"/>
+      <source file="@@REPO_ROOT@@/mac_hdd.qcow2"/>
       <target dev="sdb" bus="sata"/>
     </disk>
 

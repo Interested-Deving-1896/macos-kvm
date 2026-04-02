@@ -94,10 +94,13 @@ launch)
         exit 1
     fi
 
-    # Copy firmware to system location Incus can read
+    # Copy firmware to the path referenced in profile.yaml's raw.qemu.conf.
+    # Incus manages its own UEFI vars; we place ours here so the raw.qemu.conf
+    # override takes precedence without conflicting with Incus's default pflash.
     sudo mkdir -p "$INCUS_STORAGE_DIR/firmware"
     sudo cp "${FIRMWARE_DIR}/OVMF_CODE_4M.fd" "${INCUS_STORAGE_DIR}/firmware/"
     sudo cp "${FIRMWARE_DIR}/OVMF_VARS-1920x1080.fd" "${INCUS_STORAGE_DIR}/firmware/"
+    echo "Firmware copied to $INCUS_STORAGE_DIR/firmware/"
 
     # Create or update the Incus profile
     if incus profile show macos-kvm &>/dev/null; then
@@ -109,12 +112,12 @@ launch)
         incus profile edit macos-kvm < "${SCRIPT_DIR}/profile.yaml"
     fi
 
-    # Import the macOS installer image as a storage volume
+    # Import the macOS installer image as a custom storage volume.
+    # --type=custom is correct for a raw image file (not a VM root disk).
     INSTALLER_VOL="${INSTANCE_NAME}-installer"
     if ! incus storage volume show default "$INSTALLER_VOL" &>/dev/null; then
         echo "Importing installer image as storage volume ..."
-        incus storage volume import default "$INSTALLER_IMG" "$INSTALLER_VOL" \
-            --type=block
+        incus storage volume import default "$INSTALLER_IMG" "$INSTALLER_VOL"
     fi
 
     # Create the VM instance (empty — no OS image from image server)
@@ -124,13 +127,16 @@ launch)
         --config limits.cpu="${CPUS}" \
         --config limits.memory="${RAM}" \
         --config security.secureboot=false \
+        --device root,size="${DISK}" \
         "${INSTANCE_NAME}"
 
-    # Attach the installer volume as a secondary disk
+    # Attach the installer volume as a secondary disk.
+    # --type=custom is correct for a pre-imported raw image volume.
     incus config device add "${INSTANCE_NAME}" installer disk \
         pool=default \
         source="${INSTALLER_VOL}" \
-        boot.priority=10
+        boot.priority=10 \
+        type=custom
 
     # Set KVM ignore_msrs (required for macOS)
     if [[ -f /sys/module/kvm/parameters/ignore_msrs ]]; then

@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Incus profile for macos-kvm.
-# Defines a VM instance that runs macOS via QEMU/KVM inside Incus.
 #
 # Import with:
 #   incus profile create macos-kvm
@@ -41,9 +40,13 @@ devices:
     pool: default
     size: 128GiB
 
+  # Use the default managed bridge so the macOS guest has internet access.
+  # The macOS installer contacts Apple activation servers during setup.
+  # Run `incus network list` to confirm the bridge name on your system
+  # (typically "incusbr0"); change the `network` value if yours differs.
   eth0:
     type: nic
-    nictype: p2p
+    network: incusbr0
     name: eth0
 
 description: "macOS KVM VM profile for Incus"

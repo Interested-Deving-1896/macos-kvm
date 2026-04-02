@@ -80,6 +80,12 @@ if [[ ! -f "$OVMF_DIR/OVMF_CODE_4M.fd" ]]; then
     exit 1
 fi
 
+if [[ ! -f "$OPENCORE_IMAGE" ]]; then
+    echo "ERROR: OpenCore bootloader not found at $OPENCORE_IMAGE"
+    echo "       Run: make opencore"
+    exit 1
+fi
+
 if [[ ! -f "$DISK_IMAGE" ]]; then
     echo "No disk image found at $DISK_IMAGE."
     echo "Create one with: qemu-img create -f qcow2 $DISK_IMAGE 128G"
