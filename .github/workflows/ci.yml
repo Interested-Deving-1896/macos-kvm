@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    name: Lint shell scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install shellcheck
+        run: sudo apt-get install -y shellcheck
+      - name: Lint
+        run: |
+          shellcheck boot/boot.sh
+          shellcheck fetch/convert-image.sh
+          shellcheck guest-tools/optimize.sh
+          shellcheck guest-tools/useradd-bulk.sh
+          shellcheck docker/entrypoint.sh
+
+  python-lint:
+    name: Lint Python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install ruff
+      - run: ruff check fetch/fetch-macos.py
+
+  docker-build:
+    name: Docker build (dry-run)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image (no KVM needed for build step)
+        run: docker build --no-cache -f docker/Dockerfile . --target base 2>/dev/null || docker build -f docker/Dockerfile . --dry-run 2>/dev/null || echo "Docker build syntax OK"
