@@ -144,6 +144,7 @@ if [[ -n "$INSTALL_MEDIA" ]]; then
         echo "ERROR: Install media not found: $INSTALL_MEDIA"
         exit 1
     fi
+    # shellcheck disable=SC2054
     ARGS+=(
         -drive "id=InstallMedia,if=none,file=${INSTALL_MEDIA},format=raw"
         -device ide-hd,bus=sata.3,drive=InstallMedia
