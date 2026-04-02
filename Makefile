@@ -9,15 +9,16 @@ DISK_IMAGE   := $(REPO_ROOT)mac_hdd.qcow2
 DISK_SIZE    ?= 128G
 VERSION      ?= sonoma
 
-.PHONY: all firmware disk fetch boot headless incus-launch incus-start incus-stop incus-status clean help
+.PHONY: all firmware opencore disk fetch boot headless incus-launch incus-start incus-stop incus-status clean help
 
 all: help
 
 help:
 	@echo "macos-kvm targets:"
 	@echo "  make firmware        Download OVMF firmware blobs"
+	@echo "  make opencore        Download OpenCore bootloader qcow2"
 	@echo "  make disk            Create a blank macOS HDD image (DISK_SIZE=$(DISK_SIZE))"
-	@echo "  make fetch           Download macOS recovery image (VERSION=$(VERSION))"
+	@echo "  make fetch           Download macOS recovery image and convert to .img (VERSION=$(VERSION))"
 	@echo "  make boot            Start macOS VM (GUI, bare QEMU)"
 	@echo "  make headless        Start macOS VM (VNC on :5900, bare QEMU)"
 	@echo "  make incus-launch    Create and launch macOS VM in Incus"
@@ -36,6 +37,15 @@ firmware:
 	  https://github.com/kholia/OSX-KVM/raw/master/OVMF_VARS-1024x768.fd
 	@echo "Firmware ready in $(FIRMWARE_DIR)"
 
+opencore:
+	@echo "Downloading OpenCore bootloader ..."
+	@mkdir -p $(REPO_ROOT)boot/OpenCore
+	@if ! command -v wget &>/dev/null; then echo "ERROR: wget required"; exit 1; fi
+	@# Fetch the latest OpenCore release from kholia/OSX-KVM (pre-built qcow2)
+	wget -q -nc -O $(REPO_ROOT)boot/OpenCore/OpenCore.qcow2 \
+	  https://github.com/kholia/OSX-KVM/raw/master/OpenCore/OpenCore.qcow2
+	@echo "OpenCore ready at boot/OpenCore/OpenCore.qcow2"
+
 disk:
 	@if [[ -f "$(DISK_IMAGE)" ]]; then \
 	  echo "$(DISK_IMAGE) already exists. Delete it first to recreate."; \
@@ -46,12 +56,21 @@ disk:
 	fi
 
 fetch:
+	@echo "Fetching macOS $(VERSION) recovery image ..."
 	python3 fetch/fetch-macos.py --version $(VERSION) --outdir fetch/
+	@echo "Converting BaseSystem.dmg → BaseSystem.img ..."
+	@if [[ -f fetch/BaseSystem.dmg ]]; then \
+	  bash fetch/convert-image.sh fetch/BaseSystem.dmg fetch/BaseSystem.img; \
+	elif [[ -f fetch/RecoveryImage.dmg ]]; then \
+	  bash fetch/convert-image.sh fetch/RecoveryImage.dmg fetch/BaseSystem.img; \
+	else \
+	  echo "WARNING: No .dmg found in fetch/ — conversion skipped."; \
+	fi
 
-boot: firmware disk
+boot: firmware opencore disk
 	bash boot/boot.sh
 
-headless: firmware disk
+headless: firmware opencore disk
 	HEADLESS=1 bash boot/boot.sh
 
 incus-launch:
